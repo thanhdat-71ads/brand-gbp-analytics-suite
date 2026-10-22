@@ -1059,7 +1059,7 @@
         ];
 
         return (
-          `<div style="max-width:1240px;margin:0 auto">
+          `<div>
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:12px">
               <div>
                 <h1 style="margin:0 0 4px 0;font-size:22px;display:flex;align-items:center;gap:8px">
@@ -2554,7 +2554,7 @@
     // Generator for pages.guide() HTML
     function generateGuidePageHtml() {
       return `
-    <div style="max-width:1100px;margin:0 auto;padding-bottom:40px">
+    <div style="padding-bottom:40px">
       <!-- Header Trang Hướng dẫn & Kết nối -->
       <div style="margin-bottom:20px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
         <div>
@@ -3933,12 +3933,54 @@ DATA_ENCRYPTION_KEY=YOUR_32_BYTE_HEX_ENCRYPTION_KEY_HERE
       const healthObj = (typeof calcBrandHealth === 'function') ? calcBrandHealth(pool, bConfig, S.days || 30) : null;
       const hs = healthObj ? healthObj.score : null;
       const R = 22, C = 2 * Math.PI * R;
-      S.sideHtml = `<div class="brandbox"><div class="logo"><i></i><i></i><i></i><i></i></div><div><b>Brand Command</b><span class="muted" style="font-size:12px">CheckBrand</span></div></div>
-  <select class="brandsel" id="brandsel">${bs.map((x) => `<option value="${x.id}" ${x.id === S.brand ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
-  ${NAV.map(([g, items]) => `<div class="grp">${g}</div>${items.map(([id, ic, t]) => { const lbl = id === 'branches' ? ('So sánh ' + (bConfig.unitType || 'đơn vị')) : t; return `<button class="nav ${S.route === id ? 'on' : ''}" data-act="nav" data-v="${id}"><span class="ic">${ic}</span>${lbl}${id === 'alerts' && b.unread ? `<span class="badge">${b.unread}</span>` : ''}</button>`; }).join('')}`).join('')}
-  <div class="healthcard"><div class="t">Brand Health Score</div><div class="row" style="margin-top:6px"><svg width="54" height="54" viewBox="0 0 54 54"><circle cx="27" cy="27" r="${R}" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="27" cy="27" r="${R}" fill="none" stroke="var(${hs != null ? (hs >= 80 ? '--good' : hs >= 60 ? '--warn' : '--bad') : '--line'})" stroke-width="6" stroke-linecap="round" stroke-dasharray="${hs != null ? ((hs / 100) * C) : 0} ${C}" transform="rotate(-90 27 27)"/><text x="27" y="31" text-anchor="middle" style="font-size:13px;font-weight:650;fill:var(--text-primary)">${hs ?? '-'}</text></svg><div><b>${hs ?? '-'}</b><span class="muted">${hs != null ? '/100' : ''}</span><div class="muted" style="font-size:11px">${hs != null ? `Khủng hoảng: ${lab}` : 'Chưa đủ dữ liệu'}</div></div></div></div>
-  <div class="sidefoot"><button class="btn" data-act="sync" id="syncbtn">${b.syncing ? 'Đang cập nhật…' : '↻ Cập nhật ngay'}</button><button class="btn" data-act="theme">${document.documentElement.dataset.theme === 'dark' ? '☀ Giao diện sáng' : '☾ Giao diện tối'}</button>
-  <div class="live"><span class="dot ${S.live ? '' : 'off'}"></span>${S.live ? 'LIVE — đang kết nối' : (S.liveText || 'Dữ liệu chụp ngày 15/10/2026')} · ${fmtTime(b.lastSync)}</div></div>`;
+      // ===== Thanh menu kiểu Google Maps: rail icon + nhãn, bấm nhóm để mở danh sách mục con =====
+      const RAIL_ICON = {
+        'Tổng quan': '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+        'Địa điểm & Google Business': '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+        'Review & Danh tiếng': '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
+        'Nội dung': '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+        'Tương tác': '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM17 20h4v-3"/>',
+        'Báo cáo & AI': '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+        'Thiết lập': '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>'
+      };
+      const RAIL_LABEL = { 'Tổng quan': 'Tổng quan', 'Địa điểm & Google Business': 'Địa điểm', 'Review & Danh tiếng': 'Review', 'Nội dung': 'Nội dung', 'Tương tác': 'Mã QR', 'Báo cáo & AI': 'Báo cáo', 'Thiết lập': 'Thiết lập' };
+      const svgI = (d) => `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+      const itemLabel = (id, t) => (id === 'branches' ? ('So sánh ' + (bConfig.unitType || 'đơn vị')) : t);
+      const activeGroup = (NAV.find(([, items]) => items.some(([id]) => id === S.route)) || NAV[0])[0];
+      const initials = (b.name || '?').split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+      const isDark = document.documentElement.dataset.theme === 'dark';
+      const healthColor = hs != null ? (hs >= 80 ? '--good' : hs >= 60 ? '--warn' : '--bad') : '--line';
+
+      const railBtns = NAV.map(([g, items]) => {
+        const on = g === activeGroup;
+        const open = S.flyout === g;
+        const badge = g === 'Review & Danh tiếng' && b.unread ? `<span class="rail-badge">${b.unread}</span>` : '';
+        // Nhóm 1 mục → bấm là vào thẳng trang, không cần mở danh sách
+        const attrs = items.length === 1 ? `data-act="nav" data-v="${items[0][0]}"` : `data-act="grp" data-v="${esc(g)}" aria-expanded="${open}"`;
+        return `<button class="rail-item ${on ? 'on' : ''} ${open ? 'open' : ''}" ${attrs} title="${esc(g)}"><span class="rail-ic">${svgI(RAIL_ICON[g] || '')}</span><span class="rail-lb">${RAIL_LABEL[g] || g}</span>${badge}</button>`;
+      }).join('');
+
+      let fly = '';
+      if (S.flyout === '__brand') {
+        fly = `<div class="flyout" role="menu"><div class="fly-t">Thương hiệu</div>
+          <select class="brandsel" id="brandsel" aria-label="Chọn thương hiệu">${bs.map((x) => `<option value="${x.id}" ${x.id === S.brand ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
+          <div class="healthcard"><div class="t">Brand Health Score</div><div class="row" style="margin-top:6px"><svg width="54" height="54" viewBox="0 0 54 54"><circle cx="27" cy="27" r="${R}" fill="none" stroke="var(--line)" stroke-width="6"/><circle cx="27" cy="27" r="${R}" fill="none" stroke="var(${healthColor})" stroke-width="6" stroke-linecap="round" stroke-dasharray="${hs != null ? ((hs / 100) * C) : 0} ${C}" transform="rotate(-90 27 27)"/><text x="27" y="31" text-anchor="middle" style="font-size:13px;font-weight:600;fill:var(--text-primary)">${hs ?? '-'}</text></svg><div><b>${hs ?? '-'}</b><span class="muted">${hs != null ? '/100' : ''}</span><div class="muted" style="font-size:12px">${hs != null ? `Khủng hoảng: ${lab}` : 'Chưa đủ dữ liệu'}</div></div></div></div>
+          <div class="live"><span class="dot ${S.live ? '' : 'off'}"></span>${S.live ? 'LIVE — đang kết nối' : (S.liveText || 'Dữ liệu chụp ngày 15/10/2026')} · ${fmtTime(b.lastSync)}</div></div>`;
+      } else if (S.flyout) {
+        const grp = NAV.find(([g]) => g === S.flyout);
+        if (grp) {
+          fly = `<div class="flyout" role="menu"><div class="fly-t">${esc(grp[0])}</div>${grp[1].map(([id, , t]) => `<button class="nav ${S.route === id ? 'on' : ''}" data-act="nav" data-v="${id}" role="menuitem">${itemLabel(id, t)}${id === 'alerts' && b.unread ? `<span class="badge">${b.unread}</span>` : ''}</button>`).join('')}</div>`;
+        }
+      }
+
+      S.sideHtml = `<div class="rail">
+  <div class="rail-logo" title="Brand Command · CheckBrand"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><path d="M9.5 9.5l1.8 1.8 3.2-3.3"/></svg></div>
+  <button class="rail-brand ${S.flyout === '__brand' ? 'open' : ''}" data-act="grp" data-v="__brand" title="Đổi thương hiệu: ${esc(b.name)}" style="--brand:${esc(b.color || '#1a73e8')}"><span>${esc(initials)}</span><i class="rail-health" style="background:var(${healthColor})"></i></button>
+  ${railBtns}
+  <div class="rail-sp"></div>
+  <button class="rail-item" data-act="sync" id="syncbtn" title="${b.syncing ? 'Đang cập nhật…' : 'Cập nhật ngay'}"><span class="rail-ic">${svgI('<path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/>')}</span><span class="rail-lb">${b.syncing ? 'Đang…' : 'Cập nhật'}</span><i class="rail-live ${S.live ? '' : 'off'}"></i></button>
+  <button class="rail-item" data-act="theme" title="${isDark ? 'Giao diện sáng' : 'Giao diện tối'}"><span class="rail-ic">${svgI(isDark ? '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>' : '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>')}</span><span class="rail-lb">${isDark ? 'Sáng' : 'Tối'}</span></button>
+</div>${fly}`;
       $('#side').innerHTML = S.sideHtml;
     }
 
@@ -4868,8 +4910,12 @@ DATA_ENCRYPTION_KEY=YOUR_32_BYTE_HEX_ENCRYPTION_KEY_HERE
 
     document.addEventListener('click', async (e) => {
       const el = e.target.closest('[data-act]');
+      // Bấm ra ngoài thanh menu → đóng danh sách mục con
+      if (S.flyout && !e.target.closest('#side')) { S.flyout = null; renderSide(); }
       if (!el) return;
       const act = el.dataset.act, v = el.dataset.v;
+      if (act === 'grp') { S.flyout = S.flyout === v ? null : v; renderSide(); return; }
+      if (act === 'nav') S.flyout = null;
       if (act === 'expand') {
         const open = el.previousElementSibling.classList.toggle('open');
         el.textContent = open ? 'Ẩn bớt' : 'Thêm';
@@ -5302,6 +5348,7 @@ DATA_ENCRYPTION_KEY=YOUR_32_BYTE_HEX_ENCRYPTION_KEY_HERE
     document.addEventListener('change', async (e) => {
       if (e.target.id === 'brandsel') {
         S.brand = e.target.value;
+        S.flyout = null;
         localStorage.setItem('cb-brand', S.brand);
         S.branch = '';
         S.region = 'all';
@@ -5376,7 +5423,7 @@ DATA_ENCRYPTION_KEY=YOUR_32_BYTE_HEX_ENCRYPTION_KEY_HERE
     window.render = render;
 
     (async function init() {
-      document.documentElement.dataset.theme = localStorage.getItem('cb-theme') || 'dark';
+      document.documentElement.dataset.theme = localStorage.getItem('cb-theme') || 'light';
       if (!pages[S.route]) S.route = 'overview';
       await loadCfg();
       await render();

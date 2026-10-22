@@ -1,0 +1,208 @@
+/* =====================================================================
+   CheckBrand – Giao diện kiểu Google Maps (bản B)
+   Nạp SAU assets/css/app.css. Muốn quay về giao diện cũ: xoá dòng
+   <link ... theme-maps.css> trong index.html.
+   ===================================================================== */
+
+/* ---------- 1. Màu (sáng) – bảng "Grayscale + Accent" chỉnh theo Google ---------- */
+:root {
+  --bg: #f1f3f4;
+  --surface-1: #ffffff;
+  --surface-2: #f1f3f4;
+  --line: #dadce0;
+  --text-primary: #202124;
+  --text-secondary: #3c4043;
+  --text-muted: #5f6368;
+
+  --gblue: #1a73e8;
+  --gblue-soft: #e8f0fe;
+  --gblue-text: #174ea6;
+  --series-1: #1a73e8;
+  --accent: #fbbc04;
+  --accent-soft: #fef7e0;
+  --accent-text: #b06000;
+  --good: #188038;
+  --good-soft: #e6f4ea;
+  --bad: #c5221f;
+  --bad-soft: #fce8e6;
+  --warn: #f9ab00;
+
+  --radius-card: 16px;
+  --radius-chip: 8px;
+  --elev-1: 0 1px 2px rgba(60, 64, 67, .3), 0 1px 3px 1px rgba(60, 64, 67, .15);
+  --elev-2: 0 1px 3px rgba(60, 64, 67, .3), 0 4px 8px 3px rgba(60, 64, 67, .15);
+  --rail-w: 84px;
+}
+
+/* ---------- 2. Màu (tối) – Google Maps dark ---------- */
+:root[data-theme="dark"] {
+  --bg: #1f1f1f;
+  --surface-1: #28292a;
+  --surface-2: #303134;
+  --line: #3c4043;
+  --text-primary: #e8eaed;
+  --text-secondary: #bdc1c6;
+  --text-muted: #9aa0a6;
+  --gblue: #8ab4f8;
+  --gblue-soft: #2c3a52;
+  --gblue-text: #aecbfa;
+  --series-1: #8ab4f8;
+  --good: #81c995;
+  --good-soft: #264d34;
+  --bad: #f28b82;
+  --bad-soft: #5c2b29;
+  --elev-1: 0 1px 2px rgba(0, 0, 0, .6);
+  --elev-2: 0 4px 12px rgba(0, 0, 0, .6);
+}
+
+html, body { background: var(--bg); font-family: Roboto, system-ui, -apple-system, "Segoe UI", sans-serif; }
+
+/* ---------- 3. Bố cục: rail 84px + nội dung ---------- */
+#app { grid-template-columns: var(--rail-w) 1fr; }
+#main { padding: 20px 28px 64px; max-width: none; width: 100%; box-sizing: border-box; } /* full chiều ngang màn hình */
+
+#side {
+  padding: 0;
+  background: transparent;
+  border-right: 0;
+  overflow: visible;
+  z-index: 40;
+  gap: 0;
+}
+
+.rail {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 14px 0 12px;
+  background: var(--surface-1);
+  box-shadow: var(--elev-1);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.rail-logo {
+  width: 40px; height: 40px; border-radius: 12px;
+  background: var(--gblue);
+  display: grid; place-items: center;
+  margin-bottom: 10px; flex: none;
+}
+
+.rail-brand {
+  position: relative;
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 2px solid var(--surface-1);
+  background: var(--brand, #1a73e8);
+  color: #fff; font-weight: 700; font-size: 13px;
+  display: grid; place-items: center;
+  margin-bottom: 10px; flex: none;
+  box-shadow: 0 0 0 1px var(--line);
+}
+.rail-brand.open, .rail-brand:hover { box-shadow: 0 0 0 3px var(--gblue-soft), 0 0 0 4px var(--gblue); }
+.rail-health {
+  position: absolute; right: -2px; bottom: -2px;
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid var(--surface-1);
+}
+
+.rail-item {
+  position: relative;
+  width: 76px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 6px 0;
+  border: 0; background: none;
+  color: var(--text-secondary);
+  font-size: 12px; line-height: 1.2;
+  flex: none;
+}
+.rail-ic {
+  width: 56px; height: 32px; border-radius: 16px;
+  display: grid; place-items: center;
+  transition: background .15s;
+}
+.rail-item:hover .rail-ic { background: var(--surface-2); }
+.rail-item.on { color: var(--gblue-text); font-weight: 500; }
+.rail-item.on .rail-ic, .rail-item.open .rail-ic { background: var(--gblue-soft); }
+.rail-item:focus-visible { outline: none; }
+.rail-item:focus-visible .rail-ic { outline: 2px solid var(--gblue); outline-offset: 1px; }
+.rail-lb { max-width: 76px; text-align: center; }
+.rail-badge {
+  position: absolute; top: 2px; right: 8px;
+  min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box;
+  border-radius: 8px; background: var(--bad); color: #fff;
+  font-size: 10px; font-weight: 700; line-height: 16px; text-align: center;
+}
+.rail-live { position: absolute; top: 6px; right: 18px; width: 8px; height: 8px; border-radius: 50%; background: var(--good); }
+.rail-live.off { background: var(--text-muted); }
+.rail-sp { flex: 1 1 auto; min-height: 12px; }
+
+/* Danh sách mục con mở cạnh rail */
+.flyout {
+  position: fixed;
+  top: 12px;
+  left: calc(var(--rail-w) + 8px);
+  width: 260px;
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  background: var(--surface-1);
+  border-radius: 16px;
+  box-shadow: var(--elev-2);
+  padding: 10px;
+  display: flex; flex-direction: column; gap: 2px;
+  z-index: 60;
+  animation: cb-fly .14s ease-out;
+}
+@keyframes cb-fly { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
+.fly-t { font-size: 13px; font-weight: 500; color: var(--text-muted); padding: 6px 10px 8px; }
+.flyout .nav { border-radius: 999px; padding: 10px 14px; font-size: 14px; color: var(--text-primary); }
+.flyout .nav.on { background: var(--gblue-soft); color: var(--gblue-text); font-weight: 500; }
+.flyout .brandsel { margin: 0 4px 8px; width: auto; border-radius: 8px; padding: 9px 10px; font-size: 14px; }
+.flyout .healthcard { margin: 4px; border: 0; background: var(--surface-2); }
+.flyout .live { padding: 8px 10px 4px; }
+
+@media (prefers-reduced-motion: reduce) { .flyout { animation: none; } }
+
+/* ---------- 4. Thẻ (card) – nổi nhẹ như Google Maps, không viền ---------- */
+.card {
+  border: 0;
+  border-radius: var(--radius-card);
+  box-shadow: var(--elev-1);
+  padding: 18px 20px;
+}
+.card h3 { font-size: 16px; font-weight: 500; }
+.kpi .v { font-weight: 500; font-size: 32px; }
+.kpi .d { font-size: 13px; color: var(--text-muted); }
+h1 { font-size: 26px; font-weight: 400; }
+.sub { font-size: 14px; color: var(--text-muted); }
+.muted { color: var(--text-muted); }
+.banner { border-radius: 12px; }
+
+/* ---------- 5. Nút & chip kiểu Google ---------- */
+.btn { border-radius: 18px; padding: 7px 16px; font-weight: 500; color: var(--text-secondary); }
+.btn.primary { background: var(--gblue); border-color: var(--gblue); color: #fff; }
+.btn.on { background: var(--gblue-soft); border-color: var(--gblue); color: var(--gblue-text); }
+.btn.on::before { content: "✓ "; }
+.chip { border-radius: var(--radius-chip); font-size: 12px; padding: 2px 8px; }
+.chip.pos { background: var(--good-soft); color: var(--good); border-color: transparent; }
+.chip.neg { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+
+/* ---------- 6. Bảng ---------- */
+th { color: var(--text-muted); font-weight: 500; }
+tr:hover td { background: var(--surface-2); }
+
+/* ---------- 7. Sao vàng Google ---------- */
+.star { color: #fbbc04; }
+
+/* ---------- 8. Điện thoại: rail thành thanh ngang trên cùng ---------- */
+@media (max-width: 700px) {
+  #app { grid-template-columns: 1fr; }
+  #side { position: sticky; top: 0; height: auto; }
+  .rail { flex-direction: row; height: auto; padding: 8px 64px 8px 8px; gap: 0; overflow-x: auto; overflow-y: hidden; } /* chừa chỗ cho chuông */
+  .rail-logo, .rail-sp { display: none; }
+  .rail-brand { margin: 0 8px 0 0; }
+  .rail-item { width: 68px; }
+  .flyout { top: 76px; left: 8px; right: 8px; width: auto; }
+  #main { padding: 16px; }
+}
