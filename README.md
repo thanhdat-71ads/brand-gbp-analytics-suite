@@ -17,7 +17,8 @@ brand-gbp-analytics-suite/
 ├── index.html                  ← Khung trang, dùng chung cho cả DEMO và LIVE
 ├── CheckBrand_demo.html        ← Chuyển hướng về index.html (giữ link cũ)
 ├── assets/
-│   ├── css/app.css             ← Giao diện: màu, font, layout, theme sáng/tối, in PDF
+│   ├── css/app.css             ← Giao diện gốc: layout, thành phần, in PDF
+│   ├── css/theme-maps.css      ← Giao diện kiểu Google Maps (màu, rail menu, thẻ). Xoá dòng link trong index.html để về giao diện cũ
 │   └── js/
 │       ├── config.js           ← Cấu hình chung: chế độ, mốc snapshot
 │       ├── mock-api.js         ← Lớp API: mô phỏng (DEMO) + nối server thật (LIVE)
@@ -67,7 +68,8 @@ Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:3000/api/seoul-center/sync
 
 | Muốn thay đổi | Mở file |
 |---|---|
-| Màu sắc, font, giao diện in | `assets/css/app.css` |
+| Màu sắc, font, menu, bo góc (giao diện Google Maps) | `assets/css/theme-maps.css` |
+| Bố cục thành phần, giao diện in | `assets/css/app.css` |
 | Mốc ngày snapshot DEMO | `assets/js/config.js` → `SNAPSHOT_ISO` |
 | Dữ liệu DEMO | `data/demo-data.js` |
 | Trang nào lấy dữ liệu thật ở LIVE | `assets/js/mock-api.js` → phần `LỚP CHUYỂN ĐỔI CHẾ ĐỘ LIVE` |
