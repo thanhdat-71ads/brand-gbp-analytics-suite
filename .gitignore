@@ -8,6 +8,10 @@
 Thumbs.db
 .vscode/
 
-# Bí mật (API key) – không bao giờ đưa lên GitHub
+# Bí mật & dữ liệu chạy thật của server – KHÔNG BAO GIỜ đưa lên GitHub
 .env
 *.key
+server/.env
+server/data/
+server/config/brands.json
+node_modules/

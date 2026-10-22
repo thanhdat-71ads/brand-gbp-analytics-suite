@@ -344,7 +344,7 @@
       });
     }
 
-    const RUNTIME_MODE = 'snapshot'; // 'snapshot' | 'live'
+    const RUNTIME_MODE = window.CB_CONFIG && CB_CONFIG.MODE === 'live' ? 'live' : 'snapshot'; // 'snapshot' | 'live' (đặt trong assets/js/config.js)
     const S = {
       brand: localStorage.getItem('cb-brand') || 'seoul-center',
       route: location.hash.slice(1) || 'overview',
@@ -756,7 +756,7 @@
               <span style="font-size:18px">🌐</span>
               <div>
                 <b style="font-size:14px">Tình trạng Mạng lưới Địa điểm & Kết nối Google Business Profile</b>
-                <div class="muted" style="font-size:12px">Đồng bộ tự động qua Google Business Profile API v1 · Snapshot: 15/10/2026</div>
+                <div class="muted" style="font-size:12px">Đồng bộ tự động qua Google Business Profile API v1 · ${RUNTIME_MODE === 'live' ? 'Khu vực này đang mô phỏng (chưa nối GBP API)' : 'Snapshot: 15/10/2026'}</div>
               </div>
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -5220,7 +5220,14 @@ DATA_ENCRYPTION_KEY=YOUR_32_BYTE_HEX_ENCRYPTION_KEY_HERE
         const oldText = el.textContent;
         el.textContent = 'Đang kiểm tra…';
         try {
-          alert('Bản demo: Dữ liệu đang được cố định theo snapshot ngày 15/10/2026.\nChức năng đồng bộ dữ liệu thời gian thực từ Google Places/SerpApi chỉ kích hoạt trong môi trường sản xuất.');
+          if (RUNTIME_MODE === 'live') {
+            el.textContent = 'Đang đồng bộ…';
+            const r = await post('sync', {});
+            toast(r && r.error ? `Đồng bộ lỗi: ${esc(r.error)}` : 'Đã đồng bộ xong. Đang tải lại dữ liệu mới…');
+            setTimeout(() => location.reload(), 1200);
+          } else {
+            alert('Bản demo: Dữ liệu đang được cố định theo snapshot ngày 15/10/2026.\nChức năng đồng bộ dữ liệu thời gian thực từ Google Places/SerpApi chỉ kích hoạt khi chạy server (node server.js).');
+          }
         } catch (err) {
           console.error(err);
         } finally {
@@ -5323,6 +5330,12 @@ DATA_ENCRYPTION_KEY=YOUR_32_BYTE_HEX_ENCRYPTION_KEY_HERE
         es.onerror = () => { S.live = false; S.liveText = 'Dữ liệu chụp ngày 15/10/2026'; if (S.cfg) renderSide(); };
         es.addEventListener('sync', async (ev) => {
           const d = JSON.parse(ev.data);
+          // Live: review pool được nạp lúc mở trang → tải lại trang để lấy dữ liệu mới (trừ khi đang gõ dở)
+          if (d.brand === S.brand && d.added) {
+            const typing = ['TEXTAREA', 'INPUT'].includes(document.activeElement?.tagName);
+            if (typing) toast('Có review mới vừa đồng bộ. Lưu nội dung đang soạn rồi nhấn F5 để cập nhật.');
+            else return setTimeout(() => location.reload(), 800);
+          }
           await loadCfg();
           if (d.brand === S.brand) render();
           else renderSide();

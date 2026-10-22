@@ -1331,7 +1331,7 @@
     var cSovNote = '';
     if (bConfig && bConfig.sov != null) {
       cSovVal = bConfig.sov;
-      cSovNote = 'Cấu hình thương hiệu';
+      cSovNote = bConfig.sovNote || 'Cấu hình thương hiệu';
     } else if (total > 0) {
       cSovVal = Math.min(100, Math.round(65 + Math.min(25, total * 2) + (mentionCount > 0 ? 10 : 0)));
       cSovNote = 'Ước tính từ độ phủ thực tế (' + total + ' bản ghi - proxy, không phải Share of Voice đo lường toàn thị trường)';
@@ -1589,7 +1589,8 @@
   /* =========================================================================
      MOCK API ROUTER (WINDOW.FETCH INTERCEPTOR)
      ========================================================================= */
-  window.fetch = async function (u, opt) {
+  var realFetch = window.fetch.bind(window);
+  var mockFetch = async function (u, opt) {
     var url = new URL(typeof u === 'string' ? u : u.url, 'http://demo.local');
     var p = url.pathname;
     if (p.indexOf('/api/') !== 0) return J({}, 404);
@@ -3389,5 +3390,92 @@
     }
 
     return J({}, 404);
+  };
+
+  /* =========================================================================
+     LỚP CHUYỂN ĐỔI CHẾ ĐỘ LIVE (khi chạy qua server/ – node server.js)
+     - Review pool trong D.rev đã là review THẬT (server nạp vào data/demo-data.js)
+     - 'real'  : lấy nguyên kết quả từ server
+     - 'merge' : tính bằng mô phỏng trên review thật + ghi đè thông tin đồng bộ từ server
+     - 'alerts': cảnh báo thật từ server, đổi sang định dạng giao diện mới
+     - 'sov', 'reputation': số liệu thật từ server, bổ sung trường giao diện cần
+     - còn lại : mô phỏng (tính trên review thật / dữ liệu server nạp sẵn)
+     ========================================================================= */
+  var LIVE_REAL = ['sentiment', 'crisis', 'reports'];
+  var LIVE_POST = ['sync', 'read', 'reports'];
+
+  async function jsonOf(resp) { try { return await resp.json(); } catch (e) { return {}; } }
+
+  function mapAlert(a, b) {
+    var prefix = String(a.key || '').split(':')[0];
+    var types = { sev: 'negative_review', spike: 'negative_spike', drop: 'rating_drop', dup: 'review_attack' };
+    var pool = (D.rev[b] && D.rev[b].pool) || [];
+    var rv = (a.reviewIds && a.reviewIds[0]) ? pool.find(function (r) { return r.id === a.reviewIds[0]; }) : null;
+    var critical = a.level === 'critical';
+    return Object.assign({}, a, {
+      severity: critical ? 'high' : 'medium',
+      priority: critical ? 'CRITICAL' : 'HIGH',
+      triggerType: types[prefix] || prefix || 'other',
+      location: (rv && rv.branch) || 'Toàn chuỗi',
+      scope: rv ? 'location' : 'brand_wide',
+      evidence: a.detail || '',
+      assignee: a.assignee || '',
+      status: a.status || 'new',
+      ruleId: 'RUL-' + (prefix || 'GEN').toUpperCase(),
+      detectedAt: a.createdAt
+    });
+  }
+
+  window.fetch = async function (u, opt) {
+    if (window.CB_CONFIG.MODE !== 'live') return mockFetch(u, opt);
+    var url = new URL(typeof u === 'string' ? u : u.url, location.href);
+    var p = url.pathname;
+    if (p.indexOf('/api/') !== 0 || p === '/api/config') return realFetch(u, opt);
+    var m = p.match(/^\/api\/([\w-]+)\/(\w+)$/);
+    var b = m && m[1], ep = m && m[2];
+    var method = ((opt && opt.method) || 'GET').toUpperCase();
+    if (!ep) return mockFetch(u, opt);
+
+    if (method !== 'GET') return LIVE_POST.indexOf(ep) !== -1 ? realFetch(u, opt) : mockFetch(u, opt);
+    if (LIVE_REAL.indexOf(ep) !== -1) return realFetch(u, opt);
+
+    if (ep === 'alerts') {
+      var ra = await jsonOf(await realFetch(u, opt));
+      var list = (ra.alerts || []).map(function (a) { return mapAlert(a, b); });
+      return J({ alerts: list, unread: ra.unread || 0, total: list.length, totalCount: list.length });
+    }
+
+    if (ep === 'sov') {
+      // Share of Voice THẬT: tỷ trọng hiển thị Google Search/News (SerpApi) + số review 30 ngày của mình và đối thủ
+      var rs = await jsonOf(await realFetch(u, opt));
+      var colors = ['--series-1', '--series-2', '--series-3'];
+      var web = (rs.search && rs.search.web && rs.search.web.shares) || [];
+      rs.shares = web.map(function (x, i) {
+        return { l: x.name, v: Math.round((x.share || 0) * 1000) / 10, c: x.id === 'other' ? '--neutral' : (colors[i] || '--neutral') };
+      });
+      rs.volume = (rs.table || []).map(function (t) { return { l: t.name, v: t.vol30 || 0 }; });
+      rs.formulaVersion = rs.formulaVersion || 'server';
+      return J(rs);
+    }
+
+    if (ep === 'reputation') {
+      // Lịch sử danh tiếng THẬT: snapshot hằng ngày + bảng đối thủ từ server
+      var rr = await jsonOf(await realFetch(u, opt));
+      (rr.snapshots || []).forEach(function (sn) {
+        sn.source = sn.source || 'Snapshot server (SerpApi)';
+        sn.formulaVersion = sn.formulaVersion || 'server';
+      });
+      return J(rr);
+    }
+
+    if (ep === 'overview' || ep === 'reviews') {
+      var both = await Promise.all([mockFetch(u, opt).then(jsonOf), realFetch(u, opt).then(jsonOf)]);
+      var mk = both[0], rl = both[1];
+      var keep = ep === 'overview' ? ['mode', 'lastSync', 'syncLog', 'level', 'unread'] : ['google'];
+      keep.forEach(function (k) { if (rl[k] !== undefined) mk[k] = rl[k]; });
+      return J(mk);
+    }
+
+    return mockFetch(u, opt);
   };
 })();

@@ -1,0 +1,118 @@
+{
+  "brands": [
+    {
+      "id": "seoul-center",
+      "name": "Seoul Center",
+      "industry": "Thẩm mỹ viện / Spa",
+      "color": "#e11d74",
+      "domains": [
+        "seoulcenter.com.vn",
+        "seoulcenter.vn"
+      ],
+      "keywords": [
+        "thẩm mỹ viện seoul center",
+        "seoul center triệt lông",
+        "seoul center phun môi"
+      ],
+      "branches": [
+        {
+          "name": "Seoul Center - Nguyễn Thượng Hiền (Q.10)",
+          "address": "375 Nguyễn Thượng Hiền, Vườn Lài, TP.HCM",
+          "dataId": "0x317529f3ea8b42f1:0xf2de40b8dde1c91b"
+        },
+        {
+          "name": "Seoul Center - Ni Sư Huỳnh Liên (Tân Bình)",
+          "address": "120 Ni Sư Huỳnh Liên, Bảy Hiền, TP.HCM",
+          "dataId": "0x31752eb296e1041b:0x9696c9cb9f4a17c1"
+        },
+        {
+          "name": "Seoul Center - Bùi Hữu Nghĩa (Bình Thạnh)",
+          "address": "380 Bùi Hữu Nghĩa, Gia Định, TP.HCM",
+          "dataId": "0x31752984fb6b6bab:0x8d5dfbc96e8a1c42"
+        }
+      ],
+      "competitors": [
+        {
+          "id": "cmp-diva-tb",
+          "name": "DIVA - Trương Công Định (Tân Bình)",
+          "domains": [],
+          "dataId": "0x317529124f54d14d:0x3532c7cd927f6888"
+        },
+        {
+          "id": "cmp-linhanh",
+          "name": "TMV Linh Anh - Lê Hồng Phong",
+          "domains": [],
+          "dataId": "0x31752ee1e5be5c17:0xfd6664089717c3e6"
+        },
+        {
+          "id": "cmp-diva-td",
+          "name": "DIVA - Trương Định (Q.3)",
+          "domains": [],
+          "dataId": "0x31752f799a7f5dbd:0x769ace5c48217669"
+        }
+      ],
+      "industryLabel": "Thẩm mỹ viện / Spa & Clinic",
+      "unitType": "chi nhánh",
+      "regions": [
+        "Quận 10",
+        "Bình Thạnh",
+        "Tân Bình"
+      ],
+      "staff": [
+        "BS. Nguyễn Kim Khoa (Chuyên môn)",
+        "BS. Lê Hoàng (Chuyên môn)",
+        "CSKH - Minh Anh",
+        "CSKH - Thúy Hằng",
+        "QLCN - Trần Tuấn (Bình Thạnh)",
+        "QLCN - Hoàng Nam (Q.10)"
+      ],
+      "hotline": "1800 3333",
+      "signOff": "Ban Giám đốc & Phòng CSKH",
+      "aliases": [
+        "Seoul Center",
+        "Seoulcenter"
+      ]
+    },
+    {
+      "id": "jivi-clinic",
+      "name": "JIVI Clinic Premium",
+      "industry": "Clinic da liễu / thẩm mỹ",
+      "color": "#0ea5e9",
+      "domains": [],
+      "keywords": [
+        "jivi clinic premium"
+      ],
+      "branches": [
+        {
+          "name": "JIVI Clinic Premium",
+          "address": "964 Quang Trung, Thông Tây Hội, TP.HCM",
+          "dataId": "0x317529e53760797d:0x720cafe4868abd67"
+        }
+      ],
+      "competitors": [
+        {
+          "id": "cmp-linhanh-gv",
+          "name": "TMV Linh Anh - Gò Vấp",
+          "domains": [],
+          "dataId": "0x3175295ba0242f81:0x2ec75b469ad93642"
+        }
+      ],
+      "industryLabel": "Clinic da liễu / thẩm mỹ",
+      "unitType": "cơ sở",
+      "regions": [
+        "Quận 7"
+      ],
+      "staff": [
+        "BS. CKII Trần Nam (Chuyên môn)",
+        "CSKH - Thanh Trúc",
+        "QLCN - Mai Phương"
+      ],
+      "hotline": "0901 098 886",
+      "signOff": "Hội đồng Y khoa & CSKH",
+      "aliases": [
+        "JIVI Clinic",
+        "JIVI Premium"
+      ]
+    }
+  ]
+}

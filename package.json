@@ -1,0 +1,11 @@
+{
+  "name": "brand-gbp-analytics-suite",
+  "private": true,
+  "description": "CheckBrand – giao diện (GitHub Pages) + server dữ liệu thật (thư mục server/)",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node --watch server/server.js",
+    "find-place": "node server/scripts/find-place.js"
+  },
+  "engines": { "node": ">=20" }
+}
