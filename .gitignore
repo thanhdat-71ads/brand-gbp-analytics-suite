@@ -1,3 +1,13 @@
+# File sao lưu / bản trùng – Git đã lưu lịch sử, không cần
 *.bak
 *(1).*
+*copy*.*
+
+# Hệ điều hành / editor
 .DS_Store
+Thumbs.db
+.vscode/
+
+# Bí mật (API key) – không bao giờ đưa lên GitHub
+.env
+*.key
