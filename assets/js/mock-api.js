@@ -1167,6 +1167,7 @@
 
   function isUnrepliedGoogleReview(r) {
     if (!isGoogleReview(r)) return false;
+    if (r.replyUnknown) return false; // chưa kiểm tra trạng thái phản hồi → không tính là chưa phản hồi
     // Chưa có phản hồi công khai xuất bản trên Google
     // Lưu ý: r.replyStatus === 'draft' hoặc 'approved' là nội bộ, chưa phải Google xuất bản
     var hasPublicReply = Boolean(r.reply && r.reply.text && r.reply.text.trim().length > 0 && r.replyStatus !== 'draft' && r.replyStatus !== 'approved');
@@ -1177,6 +1178,9 @@
   // Phục hồi & Khởi tạo quy trình vận hành review
   (function initReviewWorkflows() {
     var SNAPSHOT_TIME = CB_CONFIG.SNAPSHOT_TIME;
+    // LIVE: review thật – không gắn ảnh mẫu / trạng thái xử lý giả; trạng thái lấy từ server (CB_WORKFLOW)
+    var LIVE = CB_CONFIG.MODE === 'live';
+    var SERVER_WF = (LIVE && window.CB_WORKFLOW) || {};
 
     for (var bId in D.rev) {
       var p = D.rev[bId].pool || [];
@@ -1187,10 +1191,16 @@
 
       p.forEach(function (r, idx) {
         var saved = null;
-        try {
-          var sStr = localStorage.getItem('cb_wf_' + r.id);
-          if (sStr) saved = JSON.parse(sStr);
-        } catch (e) { }
+        if (LIVE) {
+          saved = SERVER_WF[r.id] || null;
+        } else {
+          try {
+            var sStr = localStorage.getItem('cb_wf_' + r.id);
+            if (sStr) saved = JSON.parse(sStr);
+          } catch (e) { }
+        }
+        // LIVE: review lấy về trước khi hệ thống theo dõi phản hồi → chưa biết đã trả lời hay chưa
+        r.replyUnknown = LIVE && !('reply' in r) && !(saved && saved.reply);
 
         var isNeg = (r.rating != null && r.rating <= 2) || (r.analysis && r.analysis.sentiment === 'negative');
         if (!r.source) {
@@ -1210,7 +1220,7 @@
         r.hasText = hasRealText;
 
         // Cung cấp media review chân thực cho bản demo (khoảng 30% review có ảnh)
-        if (idx % 3 === 0 && hasRealText && r.rating != null) {
+        if (!LIVE && idx % 3 === 0 && hasRealText && r.rating != null) {
           r.photos = r.photos || ['https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&auto=format&fit=crop&q=60'];
           r.hasPhoto = true;
         } else {
@@ -1230,7 +1240,7 @@
         // 'observed' | 'suspected_missing' | 'confirmed_unavailable' | 'restored'
         r.missingStatus = (saved && saved.missingStatus) || r.missingStatus || 'observed';
         r.firstSeenAt = r.firstSeenAt || r.fetchedAt || '2026-10-01T08:00:00Z';
-        r.lastSeenAt = r.lastSeenAt || '2026-10-15T09:00:00Z';
+        r.lastSeenAt = r.lastSeenAt || r.replyCheckedAt || r.fetchedAt || '2026-10-15T09:00:00Z';
 
         // Phân công nhân sự theo chi nhánh / phòng ban
         var defaultStaff = 'Chưa phân công';
@@ -1245,8 +1255,17 @@
           r.reply = saved.reply;
         }
         r.assignee = (saved && saved.assignee) || (isNeg ? defaultStaff : 'Chưa phân công');
-        r.ticketStatus = (saved && saved.ticketStatus) || (isNeg ? (idx === 0 ? 'in_progress' : (idx === 1 ? 'assigned' : (idx < 5 ? 'resolved' : 'new'))) : 'resolved');
-        r.replyStatus = (saved && saved.replyStatus) || (r.reply ? 'published' : (isNeg ? (idx === 0 ? 'draft' : (idx === 1 ? 'approved' : 'none')) : 'none'));
+        if (LIVE) {
+          // Mặc định theo dữ liệu thật: review tiêu cực chưa có phản hồi → 'new', còn lại coi như đã xong
+          r.ticketStatus = (saved && saved.ticketStatus) || (isNeg && !r.reply && !r.replyUnknown ? 'new' : 'resolved');
+          r.replyStatus = (saved && saved.replyStatus) || (r.reply ? 'published' : 'none');
+          if (saved && saved.draftReply !== undefined) r.draftReply = saved.draftReply;
+          if (saved && saved.internalNotes) r.internalNotes = saved.internalNotes;
+          if (saved && saved.history) r.history = saved.history;
+        } else {
+          r.ticketStatus = (saved && saved.ticketStatus) || (isNeg ? (idx === 0 ? 'in_progress' : (idx === 1 ? 'assigned' : (idx < 5 ? 'resolved' : 'new'))) : 'resolved');
+          r.replyStatus = (saved && saved.replyStatus) || (r.reply ? 'published' : (isNeg ? (idx === 0 ? 'draft' : (idx === 1 ? 'approved' : 'none')) : 'none'));
+        }
         r.approvedReplyText = (saved && saved.approvedReplyText) || (r.replyStatus === 'approved' ? (saved && saved.draftReply) : null);
 
         // Tính toán SLA ĐỘNG
@@ -3039,7 +3058,9 @@
           negShare: total > 0 ? Math.round((negCount / total) * 1000) / 1000 : 0,
           oneStar: periodRevs.filter(function (r) { return r.rating === 1; }).length,
           googleTotal: bConfig.google ? bConfig.google.total : ratedRevs.length,
-          googleAvg: bConfig.google ? bConfig.google.rating : (avg != null ? Math.round(avg * 10) / 10 : null)
+          googleAvg: bConfig.google ? bConfig.google.rating : (avg != null ? Math.round(avg * 10) / 10 : null),
+          // true = điểm tổng trên Google Maps (server lấy từ trang địa điểm); false = điểm TB của review trong kỳ
+          googleFromPlace: !!bConfig.google
         },
         health: healthCalc, // Nhóm A: Sức khỏe danh tiếng
         profileCompleteness: { // Nhóm B: Mức hoàn thiện hồ sơ (Thống nhất đầy đủ cả 2 chuẩn trường)
@@ -3402,7 +3423,7 @@
      - còn lại : mô phỏng (tính trên review thật / dữ liệu server nạp sẵn)
      ========================================================================= */
   var LIVE_REAL = ['sentiment', 'crisis', 'reports'];
-  var LIVE_POST = ['sync', 'read', 'reports'];
+  var LIVE_POST = ['sync', 'read', 'reports', 'wfstate'];
 
   async function jsonOf(resp) { try { return await resp.json(); } catch (e) { return {}; } }
 

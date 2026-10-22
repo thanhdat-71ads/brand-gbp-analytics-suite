@@ -15,7 +15,7 @@ export function broadcast(event, data) {
 
 const running = new Set();
 
-export async function syncBrand(brandId, { forceSearch = false, forceCompetitors = false } = {}) {
+export async function syncBrand(brandId, { forceSearch = false, forceCompetitors = false, recheckReplies = false } = {}) {
   const brand = getBrand(brandId);
   if (!brand) throw new Error('Brand không tồn tại: ' + brandId);
   if (running.has(brandId)) return { skipped: 'đang đồng bộ' };
@@ -59,7 +59,9 @@ export async function syncBrand(brandId, { forceSearch = false, forceCompetitors
             }
             const knownForBranch = new Set([...known].filter((id) => id.startsWith(`${ent.id}|${br.dataId}|`)));
             const strip = new Set([...knownForBranch].map((id) => id.split('|')[2]));
-            res = await serp.fetchReviews({ dataId: br.dataId, knownIds: strip, maxPages: first ? config.pagesFirst : config.pagesIncr });
+            const recheck = recheckReplies && ent.id === 'self';
+            if (recheck) log(`Kiểm tra lại trạng thái phản hồi "${br.name}" (${config.pagesFirst} trang mới nhất)`);
+            res = await serp.fetchReviews({ dataId: br.dataId, knownIds: strip, maxPages: first || recheck ? config.pagesFirst : config.pagesIncr, fullScan: recheck });
           }
           if (res.placeInfo) bd.places[`${ent.id}|${br.name}`] = { ...res.placeInfo, at: new Date().toISOString() };
           const checkedAt = mode === 'mock' ? null : new Date().toISOString();

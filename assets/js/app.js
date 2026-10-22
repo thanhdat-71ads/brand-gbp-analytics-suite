@@ -248,7 +248,20 @@
     }
 
     function isUnrepliedGoogleReview(r) {
-      return isGoogleReview(r) && !r.reply && r.replyStatus !== 'published';
+      return isGoogleReview(r) && !r.replyUnknown && !r.reply && r.replyStatus !== 'published';
+    }
+
+    // Lưu trạng thái xử lý review: DEMO → trình duyệt (localStorage); LIVE → server (server/data/db.json)
+    async function saveWorkflowState(rv) {
+      if (window.CB_CONFIG && CB_CONFIG.MODE === 'live') {
+        const keys = ['id', 'ticketStatus', 'assignee', 'replyStatus', 'draftReply', 'approvedReplyText', 'internalNotes', 'history', 'reply', 'deadline', 'missingStatus'];
+        const body = {};
+        keys.forEach((k) => { if (rv[k] !== undefined) body[k] = rv[k]; });
+        const r = await fetch(`/api/${S.brand}/wfstate`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+        if (!r.ok) throw new Error('Không lưu được lên server (HTTP ' + r.status + ')');
+        return;
+      }
+      try { localStorage.setItem('cb_wf_' + rv.id, JSON.stringify(rv)); } catch (e) { }
     }
 
     function isSafeUrl(url) {
@@ -924,7 +937,7 @@
           actionCenterHtml +
           `<div class="grid g4" style="margin-bottom:14px">
             <div class="card kpi"><h3>Tổng review (kỳ ${S.days}d)</h3><div class="v">${fmtInt(k.reviews)}</div><div class="delta ${k.reviewsPrev == null ? 'neu' : (k.reviews >= k.reviewsPrev ? 'pos' : 'neg')}">${k.reviewsPrev == null ? 'Chưa đủ dữ liệu kỳ trước' : `${k.reviews >= k.reviewsPrev ? '▲ +' : '▼ '}${fmtInt(k.reviews - k.reviewsPrev)} so với kỳ trước`}</div></div>
-            <div class="card kpi"><h3>Đánh giá Google Maps</h3><div class="v">${fmtRating(k.googleAvg)} <span style="font-size:18px;color:var(--warn)">★</span></div><div class="sub">${fmtInt(k.googleTotal)} đánh giá trên Google</div></div>
+            <div class="card kpi"><h3>${k.googleFromPlace ? 'Đánh giá Google Maps' : `Sao trung bình (kỳ ${S.days}d)`}</h3><div class="v">${fmtRating(k.googleAvg)} <span style="font-size:18px;color:var(--warn)">★</span></div><div class="sub">${k.googleFromPlace ? `${fmtInt(k.googleTotal)} đánh giá trên Google Maps (tổng)` : `${fmtInt(k.googleTotal)} review có sao trong kỳ`}</div></div>
             <div class="card kpi"><h3>Tỷ lệ tiêu cực (1-2★)</h3><div class="v" style="color:${k.negShare > 0.05 ? 'var(--bad)' : 'inherit'}">${pct(k.negShare)}</div><div class="sub">${fmtInt(k.negative)} review tiêu cực / ${fmtInt(k.reviews)}</div></div>
             <div class="card kpi"><h3>Review 1 sao gay gắt</h3><div class="v" style="color:${k.oneStar > 0 ? 'var(--bad)' : 'inherit'}">${fmtInt(k.oneStar)}</div><div class="sub">${k.oneStar > 0 ? 'Cần xử lý khẩn cấp' : 'Không có sự cố nghiêm trọng'}</div></div>
           </div>
@@ -4276,7 +4289,7 @@ DATA_ENCRYPTION_KEY=YOUR_32_BYTE_HEX_ENCRYPTION_KEY_HERE
           assignee: currentWorkflowReview.assignee,
           ticketStatus: currentWorkflowReview.ticketStatus
         });
-        localStorage.setItem('cb_wf_' + currentWorkflowReview.id, JSON.stringify(currentWorkflowReview));
+        await saveWorkflowState(currentWorkflowReview);
         toast('Đã lưu cập nhật vụ việc thành công!');
         closeWorkflowModal();
         render();
@@ -4352,7 +4365,7 @@ DATA_ENCRYPTION_KEY=YOUR_32_BYTE_HEX_ENCRYPTION_KEY_HERE
           draftReply: currentWorkflowReview.draftReply,
           approvedReplyText: currentWorkflowReview.approvedReplyText
         });
-        localStorage.setItem('cb_wf_' + currentWorkflowReview.id, JSON.stringify(currentWorkflowReview));
+        await saveWorkflowState(currentWorkflowReview);
         toast(status === 'approved' ? 'Đã phê duyệt chuyên môn!' : 'Đã lưu bản nháp thành công!');
         renderWorkflowModal();
         render();
@@ -4389,9 +4402,9 @@ DATA_ENCRYPTION_KEY=YOUR_32_BYTE_HEX_ENCRYPTION_KEY_HERE
 
       currentWorkflowReview.history = currentWorkflowReview.history || [];
       currentWorkflowReview.history.unshift({
-        actor: 'Quản trị viên xuất bản (Mô phỏng)',
+        actor: RUNTIME_MODE === 'live' ? 'Quản trị viên' : 'Quản trị viên xuất bản (Mô phỏng)',
         at: new Date().toISOString(),
-        action: 'Mô phỏng đăng phản hồi lên Google Maps (Snapshot demo)',
+        action: RUNTIME_MODE === 'live' ? 'Đánh dấu đã phản hồi (dán thủ công lên Google Maps)' : 'Mô phỏng đăng phản hồi lên Google Maps (Snapshot demo)',
         isSimulated: true
       });
 
@@ -4403,8 +4416,13 @@ DATA_ENCRYPTION_KEY=YOUR_32_BYTE_HEX_ENCRYPTION_KEY_HERE
           approvedReplyText: currentWorkflowReview.approvedReplyText,
           reply: currentWorkflowReview.reply
         });
-        localStorage.setItem('cb_wf_' + currentWorkflowReview.id, JSON.stringify(currentWorkflowReview));
-        toast('Mô phỏng đăng phản hồi thành công (Snapshot demo) — Chỉ xuất bản thực tế sau khi backend xác nhận từ Google!');
+        await saveWorkflowState(currentWorkflowReview);
+        if (RUNTIME_MODE === 'live') {
+          try { await navigator.clipboard.writeText(text); } catch (e) { }
+          toast('Đã lưu là "đã phản hồi" và SAO CHÉP nội dung. Hãy dán lên Google Maps để xuất bản (chưa nối Google Business Profile API).');
+        } else {
+          toast('Mô phỏng đăng phản hồi thành công (Snapshot demo) — Chỉ xuất bản thực tế sau khi backend xác nhận từ Google!');
+        }
         closeWorkflowModal();
         render();
       } catch (e) {

@@ -54,7 +54,14 @@ Mở http://127.0.0.1:3000. Lần đầu: tạo `server/.env` từ `server/.env.
 |---|---|
 | Tổng quan, Review & Phản hồi, Cảm xúc & Chủ đề, Share of Voice, Rủi ro & Cảnh báo, Lịch sử danh tiếng, Báo cáo, nút Cập nhật ngay, cảnh báo real-time | Danh sách/Nhóm/Chi tiết địa điểm, Thứ hạng địa phương, Bài đăng Google, Thư viện ảnh, Lịch sử thao tác, phân quyền |
 
-Thao tác xử lý review (phân công, ghi chú, duyệt phản hồi) vẫn lưu trên trình duyệt (localStorage), chưa ghi vào server.
+Thao tác xử lý review (phân công, ghi chú, duyệt/đánh dấu đã phản hồi) ở chế độ LIVE được **lưu trên server** (`server/data/db.json`), mở trên trình duyệt hay máy nào cũng thấy. Chế độ DEMO vẫn lưu trên trình duyệt.
+
+Nút "Đăng lên Google" ở chế độ LIVE: lưu trạng thái "đã phản hồi" và sao chép nội dung để dán lên Google Maps (chưa nối Google Business Profile API).
+
+Kiểm tra lại trạng thái phản hồi của review cũ (tốn khoảng 5 lượt SerpApi mỗi chi nhánh):
+```powershell
+Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:3000/api/seoul-center/sync" -ContentType "application/json" -Body '{"recheckReplies":true}'
+```
 
 ## Sửa gì ở đâu
 
@@ -82,7 +89,7 @@ git push        # GitHub Pages tự cập nhật bản DEMO sau 1–2 phút
 ## Lộ trình
 
 - [x] Gộp bản DEMO và bản chạy thật vào một code
-- [ ] Lưu workflow xử lý review vào server thay vì trình duyệt
+- [x] Lưu workflow xử lý review vào server thay vì trình duyệt
 - [ ] Tích hợp Google Business Profile API (địa điểm, bài đăng, ảnh, trả lời review)
 - [ ] Tách `app.js` theo từng trang
 - [ ] Đăng nhập & phân quyền theo chi nhánh

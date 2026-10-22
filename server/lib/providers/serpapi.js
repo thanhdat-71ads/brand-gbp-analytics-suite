@@ -21,7 +21,8 @@ async function call(params) {
 const replyOf = (r) => (r.response ? { text: r.response.extracted_snippet?.original || r.response.snippet || '', date: r.response.iso_date || null } : null);
 
 // Trả về review mới (reviews) và trạng thái phản hồi mới nhất của review đã có trong các trang vừa lấy (seen)
-export async function fetchReviews({ dataId, knownIds, maxPages }) {
+// fullScan = true: không dừng khi gặp review đã có (dùng để kiểm tra lại trạng thái phản hồi của review cũ)
+export async function fetchReviews({ dataId, knownIds, maxPages, fullScan = false }) {
   const reviews = [];
   const seen = [];
   let placeInfo = null;
@@ -51,7 +52,7 @@ export async function fetchReviews({ dataId, knownIds, maxPages }) {
       });
     }
     token = j.serpapi_pagination?.next_page_token;
-    if (!token || hitKnown) break;
+    if (!token || (hitKnown && !fullScan)) break;
   }
   return { reviews, seen, placeInfo };
 }

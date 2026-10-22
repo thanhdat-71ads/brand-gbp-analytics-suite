@@ -16,6 +16,15 @@ const json = (res, data, code = 200) => {
   res.end(JSON.stringify(data));
 };
 
+function googleOf(bd, branch) {
+  const places = Object.entries(bd.places)
+    .filter(([k]) => (branch ? k === `self|${branch}` : k.startsWith('self|')))
+    .map(([, p]) => p)
+    .filter((p) => p.rating && p.reviews);
+  const total = places.reduce((s, p) => s + p.reviews, 0);
+  return total ? { rating: +(places.reduce((s, p) => s + p.rating * p.reviews, 0) / total).toFixed(2), total } : null;
+}
+
 function brandSummary(b) {
   const bd = brandData(b.id);
   const hs = healthScore(bd, b);
@@ -27,6 +36,8 @@ function brandSummary(b) {
     hotline: b.hotline || '', signOff: b.signOff || '',
     // Thành phần "hiện diện so với đối thủ" của Health Score server → giao diện dùng thay cho số ước tính
     sov: hs.components?.find((c) => c.key === 'sov')?.value ?? null,
+    // Điểm & tổng số đánh giá Google Maps của các chi nhánh (bình quân gia quyền theo số đánh giá)
+    google: googleOf(bd),
     sovNote: 'Đo từ server: số review 30 ngày so với đối thủ',
     mode: bd.mode || providerMode(), lastSync: bd.lastSync, syncing: isSyncing(b.id), unread: bd.alerts.filter((a) => !a.read).length, health: hs.score, level: crisisLevel(bd), reviews: selfReviews(bd).length,
   };
@@ -41,9 +52,11 @@ function configPayload() {
 function liveDataJs() {
   const rev = {};
   const stat = {};
+  const workflow = {};
   for (const b of loadBrands()) {
     const bd = brandData(b.id);
     rev[b.id] = { pool: selfReviews(bd), combos: {} };
+    Object.assign(workflow, bd.workflow || {});
     // Kết quả API thật nạp sẵn để lớp mô phỏng tính tiếp (SoV, Reputation… cần dữ liệu đối thủ từ server)
     for (const d of [7, 30, 90]) {
       for (const ep of ['overview', 'sentiment', 'topics']) stat[`/api/${b.id}/${ep}?days=${d}`] = handlers[ep](b, bd, { days: d });
@@ -53,8 +66,11 @@ function liveDataJs() {
   const data = { config: JSON.stringify(configPayload()), stat, rev };
   return `/* Sinh tự động bởi server.js (chế độ LIVE) – dữ liệu thật từ data/db.json */\n` +
     `window.CB_DEMO_DATA = ${JSON.stringify(data)};\n` +
+    `window.CB_WORKFLOW = ${JSON.stringify(workflow)};\n` +
     `window.CB_CONFIG.MODE = 'live';\nwindow.CB_CONFIG.SNAPSHOT_TIME = Date.now();\n`;
 }
+
+const WF_KEYS = ['ticketStatus', 'assignee', 'replyStatus', 'draftReply', 'approvedReplyText', 'internalNotes', 'history', 'reply', 'deadline', 'missingStatus'];
 
 const handlers = {
   overview: (b, bd, q) => ({ ...overview(bd, b, +q.days || 30), level: crisisLevel(bd), unread: bd.alerts.filter((a) => !a.read).length, mode: bd.mode, lastSync: bd.lastSync, syncLog: bd.syncLog.slice(0, 5) }),
@@ -101,7 +117,10 @@ const handlers = {
 
 async function body(req) {
   let s = '';
-  for await (const c of req) s += c;
+  for await (const c of req) {
+    s += c;
+    if (s.length > 1e6) return {}; // chặn request quá lớn (1MB)
+  }
   try {
     return s ? JSON.parse(s) : {};
   } catch {
@@ -140,7 +159,18 @@ const server = http.createServer(async (req, res) => {
       const [, , action] = m;
       if (req.method === 'POST') {
         const b = await body(req);
-        if (action === 'sync') return json(res, await syncBrand(brand.id, { forceSearch: !!b.forceSearch }));
+        if (action === 'sync') return json(res, await syncBrand(brand.id, { forceSearch: !!b.forceSearch, recheckReplies: !!b.recheckReplies }));
+        if (action === 'wfstate') {
+          // Lưu trạng thái xử lý review (phân công, ghi chú, duyệt/đánh dấu phản hồi) – thay cho localStorage trình duyệt
+          if (!b.id || !bd.reviews.some((r) => r.id === b.id)) return json(res, { error: 'Review không tồn tại' }, 400);
+          const st = {};
+          for (const k of WF_KEYS) if (b[k] !== undefined) st[k] = b[k];
+          if (JSON.stringify(st).length > 100000) return json(res, { error: 'Dữ liệu quá lớn' }, 413);
+          bd.workflow = bd.workflow || {};
+          bd.workflow[b.id] = { ...st, updatedAt: new Date().toISOString() };
+          save();
+          return json(res, { ok: true });
+        }
         if (action === 'read') {
           bd.alerts.forEach((a) => (!b.id || a.id === b.id) && (a.read = true));
           save();

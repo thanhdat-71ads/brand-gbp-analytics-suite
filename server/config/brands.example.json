@@ -35,20 +35,36 @@
         {
           "id": "cmp-diva-tb",
           "name": "DIVA - Trương Công Định (Tân Bình)",
-          "domains": [],
-          "dataId": "0x317529124f54d14d:0x3532c7cd927f6888"
+          "domains": [
+            "vienthammydiva.vn"
+          ],
+          "dataId": "0x317529124f54d14d:0x3532c7cd927f6888",
+          "aliases": [
+            "DIVA"
+          ]
         },
         {
           "id": "cmp-linhanh",
           "name": "TMV Linh Anh - Lê Hồng Phong",
-          "domains": [],
-          "dataId": "0x31752ee1e5be5c17:0xfd6664089717c3e6"
+          "domains": [
+            "thammylinhanh.vn"
+          ],
+          "dataId": "0x31752ee1e5be5c17:0xfd6664089717c3e6",
+          "aliases": [
+            "Linh Anh",
+            "TMV Linh Anh"
+          ]
         },
         {
           "id": "cmp-diva-td",
           "name": "DIVA - Trương Định (Q.3)",
-          "domains": [],
-          "dataId": "0x31752f799a7f5dbd:0x769ace5c48217669"
+          "domains": [
+            "vienthammydiva.vn"
+          ],
+          "dataId": "0x31752f799a7f5dbd:0x769ace5c48217669",
+          "aliases": [
+            "DIVA"
+          ]
         }
       ],
       "industryLabel": "Thẩm mỹ viện / Spa & Clinic",
@@ -93,8 +109,14 @@
         {
           "id": "cmp-linhanh-gv",
           "name": "TMV Linh Anh - Gò Vấp",
-          "domains": [],
-          "dataId": "0x3175295ba0242f81:0x2ec75b469ad93642"
+          "domains": [
+            "thammylinhanh.vn"
+          ],
+          "dataId": "0x3175295ba0242f81:0x2ec75b469ad93642",
+          "aliases": [
+            "Linh Anh",
+            "TMV Linh Anh"
+          ]
         }
       ],
       "industryLabel": "Clinic da liễu / thẩm mỹ",
